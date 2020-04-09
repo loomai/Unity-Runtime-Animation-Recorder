@@ -28,7 +28,7 @@ public class UnityAnimationRecorder : MonoBehaviour {
 	public float timeScaleOnStart = 0.0f;
 	public float timeScaleOnRecord = 1.0f;
 
-	public bool recordBlendShape = false;
+	public bool recordBlendShape = true;
 
 
 	Transform[] recordObjs;
@@ -75,7 +75,7 @@ public class UnityAnimationRecorder : MonoBehaviour {
 	}
 	
 	// Update is called once per frame
-	void Update () {
+	void LateUpdate () {
 	
 		if (Input.GetKeyDown (startRecordKey)) {
 			StartRecording ();
