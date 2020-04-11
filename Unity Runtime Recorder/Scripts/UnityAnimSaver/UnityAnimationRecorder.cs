@@ -30,10 +30,11 @@ public class UnityAnimationRecorder : MonoBehaviour {
 
 	public bool recordBlendShape = true;
 
+    public List<string> transformWhiteList = null;
 
-	Transform[] recordObjs;
+    Transform[] recordObjs;
 	SkinnedMeshRenderer[] blendShapeObjs;
-	UnityObjectAnimation[] objRecorders;
+	List<UnityObjectAnimation> objRecorders;
 	List<UnityBlendShapeAnimation> blendShapeRecorders;
 
 	bool isStart = false;
@@ -47,15 +48,20 @@ public class UnityAnimationRecorder : MonoBehaviour {
 
 	void SetupRecorders () {
 		recordObjs = gameObject.GetComponentsInChildren<Transform> ();
-		objRecorders = new UnityObjectAnimation[recordObjs.Length];
+        objRecorders = new List<UnityObjectAnimation>();
 		blendShapeRecorders = new List<UnityBlendShapeAnimation> ();
 
 		frameIndex = 0;
 		nowTime = 0.0f;
 
 		for (int i = 0; i < recordObjs.Length; i++) {
-			string path = AnimationRecorderHelper.GetTransformPathName (transform, recordObjs [i]);
-			objRecorders [i] = new UnityObjectAnimation ( path, recordObjs [i]);
+
+            // check if a whitelist is set and if so filter objects
+            if (transformWhiteList == null || transformWhiteList.Contains(recordObjs[i].name))
+            {
+                string path = AnimationRecorderHelper.GetTransformPathName(transform, recordObjs[i]);
+                objRecorders.Add(new UnityObjectAnimation(path, recordObjs[i]));
+            }
 
 			// check if theres blendShape
 			if (recordBlendShape) {
@@ -64,7 +70,8 @@ public class UnityAnimationRecorder : MonoBehaviour {
 
 					// there is blendShape exist
 					if (tempSkinMeshRenderer.sharedMesh.blendShapeCount > 0) {
-						blendShapeRecorders.Add (new UnityBlendShapeAnimation (path, tempSkinMeshRenderer));
+                        string path = AnimationRecorderHelper.GetTransformPathName(transform, recordObjs[i]);
+                        blendShapeRecorders.Add (new UnityBlendShapeAnimation (path, tempSkinMeshRenderer));
 					}
 				}
 			}
@@ -88,15 +95,15 @@ public class UnityAnimationRecorder : MonoBehaviour {
 		if (isStart) {
 			nowTime += Time.deltaTime;
 
-			for (int i = 0; i < objRecorders.Length; i++) {
-				objRecorders [i].AddFrame (nowTime);
-			}
+            foreach (var recorder in objRecorders)
+            {
+                recorder.AddFrame(nowTime);
+            }
 
-			if (recordBlendShape) {
-				for (int i = 0; i < blendShapeRecorders.Count; i++) {
-					blendShapeRecorders [i].AddFrame (nowTime);
-				}
-			}
+            foreach (var recorder in blendShapeRecorders)
+            {
+                recorder.AddFrame(nowTime);
+            }
 		}
 
 	}
@@ -116,7 +123,7 @@ public class UnityAnimationRecorder : MonoBehaviour {
 		ResetRecorder ();
 	}
 
-	void ResetRecorder () {
+	public void ResetRecorder () {
 		SetupRecorders ();
 	}
 
@@ -124,14 +131,15 @@ public class UnityAnimationRecorder : MonoBehaviour {
 	void FixedUpdate () {
 
 		if (isStart) {
-
 			if (recordLimitedFrames) {
 				if (frameIndex < recordFrames) {
-					for (int i = 0; i < objRecorders.Length; i++) {
-						objRecorders [i].AddFrame (nowTime);
-					}
 
-					++frameIndex;
+                    foreach (var recorder in objRecorders)
+                    {
+                        recorder.AddFrame(nowTime);
+                    }
+
+                    ++frameIndex;
 				}
 				else {
 					isStart = false;
@@ -162,7 +170,7 @@ public class UnityAnimationRecorder : MonoBehaviour {
 		AnimationClip clip = new AnimationClip ();
 		clip.name = fileName;
 
-		for (int i = 0; i < objRecorders.Length; i++) {
+		for (int i = 0; i < objRecorders.Count; i++) {
 			UnityCurveContainer[] curves = objRecorders [i].curves;
 
 			for (int x = 0; x < curves.Length; x++) {
